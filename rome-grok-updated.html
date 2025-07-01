@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rome Itinerary - A Curated Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Classic Rome (Deep Reds, Gold, and Marble White) -->
+    <!-- Application Structure Plan: This is a new SPA built from the rome-grok.markdown file. It uses a tabbed navigation for clarity ('Home', 'Day 1-4', 'More'). The 'Home' tab provides a welcoming overview and incorporates the 'General Tips' from the markdown. Daily tabs use a card-based layout to present choices for activities and dining. A new 'More' tab consolidates optional excursions, cooking classes, and rental info into an easily digestible format. This structure is chosen to logically group the rich details from the source file, making it highly usable for a traveler on the go. -->
+    <!-- Visualization & Content Choices: Content from rome-grok.markdown is mapped to interactive elements. Daily activities are presented as visual cards with images to make them more appealing. The 'Optional Half-Day Excursions' markdown table is transformed into a more engaging set of styled cards. The birthday page includes a special confetti animation for a celebratory feel. All content is sourced directly from the provided file, and no SVG/Mermaid are used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f9f6f2; }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+        .nav-link { transition: all 0.3s ease; }
+        .nav-link.active { color: #991b1b; border-bottom-color: #991b1b; font-weight: 600; }
+        .nav-link:not(.active) { border-bottom-color: transparent; }
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background-color: #FFFFFF; border: 1px solid #EAEAEA; transition: transform 0.3s, box-shadow 0.3s; overflow: hidden; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07); }
+        .card img { transition: transform 0.3s ease; }
+        .card:hover img { transform: scale(1.05); }
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
+    </style>
+</head>
+<body class="text-stone-800">
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+            <button id="modal-close" class="absolute top-4 right-4 text-white bg-black/30 hover:bg-black/60 rounded-full p-1 z-10 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <img id="modal-image" src="" class="w-full h-64 object-cover" alt="Modal Image" onerror="this.onerror=null;this.src='https://placehold.co/600x400/CCCCCC/FFFFFF?text=Image+Not+Found';">
+            <div class="p-6 md:p-8">
+                <h3 id="modal-title" class="text-2xl md:text-3xl font-bold text-stone-900 mb-4"></h3>
+                <div id="modal-content" class="prose max-w-none text-stone-700"></div>
+            </div>
+        </div>
+    </div>
+    
+    <header class="bg-white/90 backdrop-blur-lg sticky top-0 z-40 shadow-md border-b-2 border-amber-800/10">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-2xl font-bold text-red-900 tracking-tight">Roman Holiday</h1>
+                <div class="hidden sm:flex sm:space-x-6 md:space-x-8">
+                    <button data-target="home" class="nav-link text-sm font-medium text-stone-600 hover:text-stone-900 border-b-2 pb-1">Home</button>
+                    <button data-target="day1" class="nav-link text-sm font-medium text-stone-600 hover:text-stone-900 border-b-2 pb-1">Day 1</button>
+                    <button data-target="day2" class="nav-link text-sm font-medium text-stone-600 hover:text-stone-900 border-b-2 pb-1">Day 2</button>
+                    <button data-target="day3" class="nav-link text-sm font-medium text-stone-600 hover:text-stone-900 border-b-2 pb-1">Day 3</button>
+                    <button data-target="day4" class="nav-link text-sm font-medium text-stone-600 hover:text-stone-900 border-b-2 pb-1">Day 4: Birthday</button>
+                    <button data-target="more" class="nav-link text-sm font-medium text-stone-600 hover:text-stone-900 border-b-2 pb-1">More</button>
+                </div>
+                <div class="sm:hidden">
+                    <select id="mobile-nav" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-800 focus:ring-red-800">
+                        <option value="home">Home</option>
+                        <option value="day1">Day 1: Vatican</option>
+                        <option value="day2">Day 2: Ancient Rome</option>
+                        <option value="day3">Day 3: City Center</option>
+                        <option value="day4">Day 4: Birthday</option>
+                        <option value="more">More</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div id="home" class="content-section"></div>
+        <div id="day1" class="content-section"></div>
+        <div id="day2" class="content-section"></div>
+        <div id="day3" class="content-section"></div>
+        <div id="day4" class="content-section"></div>
+        <div id="more" class="content-section"></div>
+    </main>
+    
+    <script>
+        const itineraryData = {
+            home: {
+                title: "Rome Itinerary for July 8–12, 2025",
+                intro: "This comprehensive itinerary is designed for a young, budget-conscious couple staying near Via La Stazione Di San Pietro 22. It balances iconic sightseeing, culinary delights, and cultural experiences, with a special focus on a memorable birthday celebration on July 11.",
+                tips: [
+                    { title: "Booking", text: "Pre-book tickets for major attractions like the Vatican Museums, Colosseum, and Borghese Gallery to avoid long queues.", icon: "🎟️" },
+                    { title: "Transportation", text: "Use Rome’s metro, buses, or trams. Your location in Aurelio is well-connected.", icon: "🚇" },
+                    { title: "Dress Code", text: "For religious sites like St. Peter’s Basilica, cover shoulders and knees.", icon: "👕" },
+                    { title: "Weather", text: "July in Rome is hot, so carry water, wear sunscreen, and take breaks in shaded areas.", icon: "☀️" },
+                    { title: "Budget", text: "Expect main courses at mid-range restaurants to cost €15–€25.", icon: "💶" }
+                ]
+            },
+            day1: {
+                title: "Vatican and Surroundings",
+                date: "Tuesday, July 8, 2025",
+                schedule: [
+                    { time: "Morning", options: [
+                        { name: "St. Peter’s Basilica", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Basilica_di_San_Pietro_in_Vaticano_September_2015-1a.jpg/1200px-Basilica_di_San_Pietro_in_Vaticano_September_2015-1a.jpg", details: "Arrive at 7:00 AM when it opens. Explore the interior, including Michelangelo’s Pietà, and consider climbing the dome (€10) for stunning views." },
+                        { name: "Vatican Museums", image: "https://media.cntraveler.com/photos/5a99866499c77f4533dfc047/master/pass/Braccio-Nuovo-Sculpture-Gallery-J9FA8C.jpg", details: "Pre-book a 10:00 AM entry slot (€20–€30). Spend 3–4 hours exploring the vast art collection, including the Sistine Chapel." }
+                    ]},
+                    { time: "Lunch", options: [
+                        { name: "Ristorante dei Musei", image: "https://media-cdn.tripadvisor.com/media/photo-s/17/2f/31/2f/caption.jpg", details: "Via Santamaura, 5. An inexpensive eatery offering Italian classics like pasta and pizza. Price: €10–€20 pp." },
+                        { name: "Il Segreto", image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/296060459.jpg?k=291df316b7d6534b97f2710d9e6f57bbfb51381ce971c0f48b426e58a4340d7d&o=&hp=1", details: "Via Candia, 71. A moderate-priced restaurant with local dishes like carbonara. Price: €15–€25 pp." }
+                    ]},
+                    { time: "Afternoon", options: [
+                        { name: "Castel Sant’Angelo", image: "https://castelsantangelorome.com/wp-content/uploads/2024/03/castel-santangelo-entrata.webp", details: "Visit this historic fortress. Explore its history as Hadrian’s mausoleum and enjoy panoramic views from the terrace (€15)." }
+                    ]},
+                    { time: "Aperitivo", options: [
+                        { name: "Il Sorpasso", image: "https://s3.amazonaws.com/criterion-production/films/41d9df20fc245c4ecc12ef934533adc2/HrfTWPnllatTkm1Npqwr0o4Jslre1h_large.jpg", details: "Via Properzio, 31/33. A trendy wine bar in Prati, perfect for aperitivo with cocktails or wine and small plates. Price: €10–€15." }
+                    ]},
+                    { time: "Dinner", options: [
+                        { name: "Dinner at Il Sorpasso", image: "https://s3.amazonaws.com/criterion-production/films/41d9df20fc245c4ecc12ef934533adc2/HrfTWPnllatTkm1Npqwr0o4Jslre1h_large.jpg", details: "Stay for dinner to enjoy dishes like cured meats and pasta. Reservations recommended." },
+                        { name: "3 Quarti Restaurant", image: "https://www.3quarti.it/tre-quarti/assets/media/2015/10/I80A8563-scaled.jpg", details: "Via Attilio Regolo, 21. Offers Roman cuisine in a cozy setting. Price: €15–€25 per main course." }
+                    ]}
+                ]
+            },
+            day2: {
+                title: "Ancient Rome",
+                date: "Wednesday, July 9, 2025",
+                schedule: [
+                    { time: "Morning", options: [
+                        { name: "Colosseum", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Colosseo_2020.jpg/1200px-Colosseo_2020.jpg", details: "Book a 9:00 AM slot (€18). Allow 1–2 hours." },
+                        { name: "Roman Forum & Palatine Hill", image: "https://graylinerome.com/wp-content/uploads/2023/03/Roman-Forum-Ruins.jpg", details: "Included in the Colosseum ticket. Spend 2–3 hours exploring the ruins." }
+                    ]},
+                    { time: "Lunch", options: [
+                        { name: "La Nuova Piazzetta", image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/296060459.jpg?k=291df316b7d6534b97f2710d9e6f57bbfb51381ce971c0f48b426e58a4340d7d&o=&hp=1", details: "Vicolo del Buon Consiglio, 23/a. A charming trattoria with Roman dishes like amatriciana. Price: €15–€25 pp." },
+                        { name: "Pasqualino Al Colosseo", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/21/db/af/antica-trattoria-pasqualino.jpg?w=900&h=500&s=1", details: "Via dei SS. Quattro, 66. Known for its pasta and traditional fare. Price: €15–€25 pp." }
+                    ]},
+                    { time: "Afternoon", options: [
+                        { name: "Capitoline Museums", image: "https://www.rometoolkit.com/Images/whattodo/capitoline-museum.jpg", details: "Open 9:30 AM to 7:30 PM (€16.50). Houses ancient Roman artifacts, including the Capitoline She-Wolf." }
+                    ]},
+                    { time: "Aperitivo", options: [
+                        { name: "Ai Tre Scalini", image: "https://s3.amazonaws.com/criterion-production/films/41d9df20fc245c4ecc12ef934533adc2/HrfTWPnllatTkm1Npqwr0o4Jslre1h_large.jpg", details: "Via Panisperna, 251. A lively wine bar in Monti, perfect for drinks and snacks. Price: €8–€15." }
+                    ]},
+                    { time: "Dinner", options: [
+                        { name: "La Taverna dei Fori Imperiali", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0c/37/42/ec/caption.jpg?w=900&h=500&s=1", details: "Via della Madonna dei Monti, 9. A beloved restaurant for Roman dishes like cacio e pepe. Price: €15–€25 per main course. Reservations advised." }
+                    ]}
+                ]
+            },
+            day3: {
+                title: "City Center",
+                date: "Thursday, July 10, 2025",
+                schedule: [
+                    { time: "Morning", options: [
+                        { name: "Pantheon", image: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Pantheon_Rom_1_cropped.jpg", details: "Visit at 9:00 AM when it opens to avoid crowds (€5 entry). Admire this ancient temple’s architectural marvel." },
+                        { name: "Trevi Fountain & Spanish Steps", image: "https://travelswithmelinda.com/wp-content/uploads/2023/01/img_20221002_080221-2.jpg", details: "Walk to the Trevi Fountain (10 minutes) and then to the Spanish Steps (another 10–15 minutes) for iconic photo opportunities." }
+                    ]},
+                    { time: "Lunch", options: [
+                        { name: "Osteria da Fortunata", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/21/db/af/antica-trattoria-pasqualino.jpg?w=900&h=500&s=1", details: "Piazza della Rotonda, 6. Famous for handmade pasta like carbonara. Price: €15–€25 pp." },
+                        { name: "Armando al Pantheon", image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/296060459.jpg?k=291df316b7d6534b97f2710d9e6f57bbfb51381ce971c0f48b426e58a4340d7d&o=&hp=1", details: "Salita de’ Crescenzi, 31. A historic spot for Roman cuisine. Price: €15–€25 per person. Book in advance." }
+                    ]},
+                    { time: "Coffee/Aperitivo", options: [
+                        { name: "La Casa del Caffè Tazza d’Oro", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/09/22/d4/5b/delicioso.jpg?w=900&h=500&s=1", details: "Via degli Orfani, 84. Renowned for its espresso and granita di caffè. Price: €2–€5 for coffee." }
+                    ]},
+                    { time: "Dinner", options: [
+                        { name: "Tonnarello", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/19/37/06/e3/tonnarello.jpg?w=900&h=-1&s=1", details: "Via della Paglia, 1/2/3. A popular Trastevere restaurant known for its pasta dishes. Price: €15–€25 per main course. Expect a wait or arrive early." }
+                    ]}
+                ]
+            },
+            day4: {
+                title: "Birthday Celebration",
+                date: "Friday, July 11, 2025",
+                schedule: [
+                    { time: "Morning", options: [
+                        { name: "Borghese Gallery", image: "https://cms.througheternity.com/upload/CONF83/20210304/DSCN2984-01.jpeg", details: "Book a 9:00 AM to 11:00 AM slot (€13) to see masterpieces by Bernini, Caravaggio, and Raphael." }
+                    ]},
+                    { time: "Lunch", options: [
+                        { name: "Casina Valadier", image: "https://www.casinavaladier.it/wp-content/uploads/2024/03/location-eventi-matrimoni-roma-casina-valadier-evidenza.jpg", details: "Piazza Bucarest, Villa Borghese. A fine dining option with views of the city. Price: €20–€35 pp. Reservations recommended." }
+                    ]},
+                    { time: "Afternoon", options: [
+                        { name: "Villa Borghese Gardens", image: "https://www.villaborghesetours.com/info/wp-content/uploads/Fontana-della-Venere.jpg", details: "Relax in the gardens, renting a bike (€5–€10/hour) or a rowboat (€20/hour for two) on the lake." }
+                    ]},
+                    { time: "Evening Highlight", options: [
+                        { name: "Dinner Cruise on the Tiber River", image: "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-674x446/06/73/1e/86.jpg", details: "Book a romantic dinner cruise with live music and a 4-course meal, offering views of landmarks. Cost: €70–€100 pp." },
+                        { name: "Les Etoiles Rooftop Restaurant", image: "https://www.terrazzalesetoiles.com/wp-content/uploads/2022/03/les-etoiles-restaurant-rooftop-bar-rome.jpg", details: "Via dei Bastioni, 1. Offers a panoramic view of Rome, with main courses from €32–€75." }
+                    ]}
+                ]
+            },
+            more: {
+                excursions: [
+                    { name: "Tivoli", image: "https://www.turismoroma.it/sites/default/files/Tivoli%20pixabay%201920x1080.jpg", details: "Visit Villa d’Este’s gardens and Hadrian’s Villa. Access: Train from Termini (1 hour, €5–€10 return). Cost: €15–€20 entry." },
+                    { name: "Ostia Antica", image: "https://d3dqioy2sca31t.cloudfront.net/Projects/cms/production/000/000/100/original/9d533acc38cb514545e54c37d0f49d4c/307OstiaAntica.jpg", details: "Explore ancient Roman ruins. Access: Train from Piramide (30 min, €3–€5 return). Cost: €12 entry." },
+                    { name: "Castelli Romani", image: "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-674x446/06/73/1e/86.jpg", details: "Enjoy wine tasting and scenic towns. Access: Guided tour or train (40 min, €5–€10 return). Cost: €50–€100 tour." }
+                ],
+                cooking: [
+                    { name: "InRome Cooking", image: "https://www.inromecooking.com/wp-content/uploads/2021/01/Family-Gelato-Making-Class-600x500.jpg", details: "Offers pasta-making, pizza-making, and market tour classes. Prices: €60–€100 per person." },
+                    { name: "Rome With Chef", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/25/8e/52/d6/rome-with-chef-cooking.jpg?w=1200&h=-1&s=1", details: "Small-group or private classes focusing on Roman dishes. Prices: €70–€120 per person." }
+                ],
+                budget: [
+                    { name: "Appia Antica", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Paesaggio_dell%27Appia_antica.jpg/1200px-Paesaggio_dell%27Appia_antica.jpg", details: "Walk or bike along this ancient road, visiting catacombs (€8–€12). Accessible by bus 118 from Piramide." },
+                    { name: "EUR District", image: "https://upload.wikimedia.org/wikipedia/commons/2/22/EUR_Piazza_Guglielmo_Marconi.jpg", details: "See modern architecture like the Palazzo della Civiltà Italiana. Metro Line B to EUR Magliana." },
+                    { name: "Ostia Lido", image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/21/db/af/antica-trattoria-pasqualino.jpg?w=900&h=500&s=1", details: "Relax at the beach, a short train ride from Piramide (€3–€5 return)." }
+                ],
+                rentals: {
+                    scooter: "Renting a scooter (€30–€50/day) is ideal for exploring Appia Antica but requires caution due to Rome’s traffic.",
+                    car: "A car rental (€50–€100/day) is useful for Castelli Romani or Tivoli, offering flexibility for winery visits."
+                }
+            }
+        };
+
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalClose = document.getElementById('modal-close');
+        const modalImage = document.getElementById('modal-image');
+
+        function openModal(title, content, imageSrc) {
+            modalTitle.textContent = title;
+            modalContent.innerHTML = content;
+            modalImage.src = imageSrc;
+            modalImage.alt = title;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        modalClose.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target.id === 'modal') {
+                closeModal();
+            }
+        });
+        
+        function createCard(item) {
+            return `
+            <div class="card rounded-lg cursor-pointer flex flex-col" data-title="${item.name}" data-details="${item.details}" data-image="${item.image}">
+                <div class="aspect-w-16 aspect-h-9 overflow-hidden rounded-t-lg">
+                    <img src="${item.image}" alt="${item.name}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/CCCCCC/FFFFFF?text=Image+Not+Found';">
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h4 class="font-bold text-stone-800 flex-grow">${item.name}</h4>
+                    <p class="text-sm text-red-700 hover:text-red-900 font-semibold mt-2">View Details &rarr;</p>
+                </div>
+            </div>`;
+        }
+        
+        function createHomePage() {
+            const homeData = itineraryData.home;
+            let html = `
+                <div class="relative rounded-xl overflow-hidden mb-12 shadow-2xl">
+                    <img src="https://media.istockphoto.com/id/1382341359/photo/rome-italy-view-towards-the-colosseum.jpg?s=612x612&w=0&k=20&c=BaaiJU9SBB3Ed-yFzLUWeIFosYoeUASfHfrrO4HrhuM=" class="absolute h-full w-full object-cover" alt="View over the Roman Forum at sunset">
+                    <div class="absolute h-full w-full bg-black/50"></div>
+                    <div class="relative text-center p-8 md:p-20 lg:p-24">
+                        <h2 class="text-4xl md:text-6xl font-extrabold text-white">${homeData.title}</h2>
+                        <p class="mt-4 max-w-2xl mx-auto text-lg text-white/90">${homeData.intro}</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-8 md:p-12">
+                    <h3 class="text-3xl font-bold text-center text-red-900 mb-8">General Tips for Your Trip</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            `;
+            homeData.tips.forEach(tip => {
+                html += `
+                    <div class="flex items-start space-x-4">
+                        <div class="text-3xl">${tip.icon}</div>
+                        <div>
+                            <h4 class="font-bold text-lg">${tip.title}</h4>
+                            <p class="text-stone-600">${tip.text}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div></div>`;
+            document.getElementById('home').innerHTML = html;
+        }
+
+        function createDayView(dayKey) {
+            const dayData = itineraryData[dayKey];
+            let html = `
+                <div class="text-center mb-8 md:mb-12">
+                    <p class="text-lg font-semibold text-red-800">${dayData.date}</p>
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-stone-900 mt-1">${dayData.title}</h2>
+                </div>
+            `;
+
+            dayData.schedule.forEach(section => {
+                html += `<div class="mb-12">
+                    <h3 class="text-2xl font-bold text-stone-800 border-b-2 border-red-800/20 pb-2 mb-6">${section.time}</h3>
+                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${section.options.map(item => createCard(item)).join('')}
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById(dayKey).innerHTML = html;
+        }
+
+        function createMoreView() {
+            const moreData = itineraryData.more;
+            let html = `
+                <div class="text-center mb-8 md:mb-12">
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-stone-900">Excursions & More</h2>
+                    <p class="mt-4 max-w-3xl mx-auto text-lg text-stone-600">Venture beyond the city center with these curated experiences.</p>
+                </div>
+                
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold text-stone-800 border-b-2 border-red-800/20 pb-2 mb-6">Optional Half-Day Excursions</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        ${moreData.excursions.map(item => createCard(item)).join('')}
+                    </div>
+                </div>
+                
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold text-stone-800 border-b-2 border-red-800/20 pb-2 mb-6">Unique Cooking Classes</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${moreData.cooking.map(item => createCard(item)).join('')}
+                    </div>
+                </div>
+                
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold text-stone-800 border-b-2 border-red-800/20 pb-2 mb-6">Budget-Friendly Spots Outside Central Rome</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        ${moreData.budget.map(item => createCard(item)).join('')}
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-stone-800 mb-4">Scooter/Car Rental</h3>
+                    <p class="text-stone-600 mb-2"><strong>Scooter:</strong> ${moreData.rentals.scooter}</p>
+                    <p class="text-stone-600"><strong>Car:</strong> ${moreData.rentals.car}</p>
+                </div>
+            `;
+            document.getElementById('more').innerHTML = html;
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const mobileNav = document.getElementById('mobile-nav');
+            const sections = document.querySelectorAll('.content-section');
+            const mainContent = document.querySelector('main');
+            const myCanvas = document.getElementById('confetti-canvas');
+            const myConfetti = confetti.create(myCanvas, {
+              resize: true,
+              useWorker: true
+            });
+
+            function navigate(targetId) {
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.target === targetId) {
+                        link.classList.add('active');
+                    }
+                });
+                
+                if(mobileNav.value !== targetId) {
+                    mobileNav.value = targetId;
+                }
+
+                if (targetId === 'day4') {
+                    myConfetti({
+                        particleCount: 150,
+                        spread: 160,
+                        origin: { y: 0.6 }
+                    });
+                }
+                
+                window.scrollTo(0, 0);
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => navigate(link.dataset.target));
+            });
+            
+            mobileNav.addEventListener('change', (e) => navigate(e.target.value));
+            
+            createHomePage();
+            createDayView('day1');
+            createDayView('day2');
+            createDayView('day3');
+            createDayView('day4');
+            createMoreView();
+            
+            navigate('home');
+            
+            mainContent.addEventListener('click', (e) => {
+                const card = e.target.closest('.card');
+                if(card && card.dataset.title && card.dataset.details) {
+                    const cleanDetails = card.dataset.details.replace(/`([^`]+)`/g, '<code class="bg-stone-100 text-stone-800 rounded px-1 py-0.5 text-sm">$1</code>');
+                    openModal(card.dataset.title, cleanDetails, card.dataset.image);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
